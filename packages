@@ -1,0 +1,90 @@
+#!/bin/bash
+
+
+set -e
+
+
+# additional repos
+echo -e "\nEnabling repositories ..."
+dnf -y install \
+    distribution-gpg-keys \
+    fedora-gpg-keys \
+    fedora-workstation-repositories \
+    https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-"$(rpm -E %fedora)".noarch.rpm
+
+
+dnf -y update || true
+
+
+# install xorg server
+echo -e "\nInstalling Xorg server ..."
+dnf -y install \
+    xorg-xll-server-Xorg \  
+    xorg-x11-server-utils \
+    xorg-x11-drv-libinput \       
+    xorg-x11-xkb-utils
+
+
+# install xfce and lxdm
+echo -e "\nInstalling Xfce desktop ..."
+dnf -y --setopt=install_weak_deps=False install \
+    catfish \
+    exo \
+    garcon \
+    libxfce4ui \
+    libxfce4util \
+    thunar \
+    thunar-volman \
+    tumbler \
+    xfce4-appfinder \
+    xfce4-notifyd \
+    xfce4-panel \
+    xfce-polkit \
+    xfce4-power-manager \
+    xfce4-screenshooter \
+    xfce4-session \
+    xfce4-settings \
+    xfce4-terminal \
+    xfconf \
+    xfdesktop \
+    xfwm4 \
+    lxdm
+
+# needed for lxdm
+mv /etc/systemd/system/default.target /etc/systemd/system/default.target.bak
+
+
+# install gui apps
+echo -e "\nInstalling applications ..."
+dnf -y --setopt=install_weak_deps=False install \
+    alsa-utils \
+    dconf \
+    dnf-automatic \
+    ffmpeg \
+    firefox-esr \
+    firejail \
+    gedit \
+    git \
+    greybird-dark-theme \
+    gvfs \
+    hexchat \
+    networkmanager \
+    nm-connection-editor \
+    papirus-icon-theme \
+    redhat-lsb-core \
+    shotwell \
+    transmission-gtk \
+    vlc \
+    xreader
+
+
+# install atom
+echo -e "\nInstalling Atom ..."
+curl -Lo atom-current.rpm https://atom.io/download/rpm
+rpm -i atom-current.rpm && rm atom-current.rpm
+
+
+# install nordvpn
+echo -e "\nInstalling NordVPN ..."
+sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh)
+
