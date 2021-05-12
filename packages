@@ -30,7 +30,6 @@ dnf -y --setopt=install_weak_deps=False install \
     thunar \
     thunar-volman \
     tumbler \
-    xfce4-appfinder \
     xfce4-notifyd \
     xfce4-panel \
     xfce4-power-manager \
@@ -67,7 +66,6 @@ dnf -y --setopt=install_weak_deps=False install \
     redhat-lsb-core \
     shotwell \
     transmission-gtk \
-    vim-enhanced \
     vlc \
     xed \
     xreader
