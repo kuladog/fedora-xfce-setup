@@ -7,8 +7,6 @@ set -e
 # additional repos
 echo -e "\nEnabling repositories ..."
 dnf -y install \
-    distribution-gpg-keys \
-    fedora-gpg-keys \
     fedora-workstation-repositories \
     https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-"$(rpm -E %fedora)".noarch.rpm
 
@@ -18,11 +16,7 @@ dnf -y update || true
 
 # install xorg server
 echo -e "\nInstalling Xorg server ..."
-dnf -y install \
-    xorg-xll-server-Xorg \  
-    xorg-x11-server-utils \
-    xorg-x11-drv-libinput \       
-    xorg-x11-xkb-utils
+dnf -y install Xorg
 
 
 # install xfce and lxdm
@@ -39,7 +33,6 @@ dnf -y --setopt=install_weak_deps=False install \
     xfce4-appfinder \
     xfce4-notifyd \
     xfce4-panel \
-    xfce-polkit \
     xfce4-power-manager \
     xfce4-screenshooter \
     xfce4-session \
@@ -50,8 +43,7 @@ dnf -y --setopt=install_weak_deps=False install \
     xfwm4 \
     lxdm
 
-# needed for lxdm
-mv /etc/systemd/system/default.target /etc/systemd/system/default.target.bak
+systemctl enable lxdm
 
 
 # install gui apps
@@ -61,21 +53,26 @@ dnf -y --setopt=install_weak_deps=False install \
     dconf \
     dnf-automatic \
     ffmpeg \
-    firefox-esr \
+    file-roller \
+    firefox \
     firejail \
-    gedit \
     git \
     greybird-dark-theme \
     gvfs \
     hexchat \
-    networkmanager \
+    htop \
+    NetworkManager \
     nm-connection-editor \
     papirus-icon-theme \
     redhat-lsb-core \
     shotwell \
     transmission-gtk \
+    vim-enhanced \
     vlc \
+    xed \
     xreader
+
+systemctl enable NetworkManager
 
 
 # install atom

@@ -1,7 +1,4 @@
 # Fedora Hardened - /etc/default/grub
-#
-# github.com/kuladog
-#
 
 GRUB_TIMEOUT=0
 GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"

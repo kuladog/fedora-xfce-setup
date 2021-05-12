@@ -1,0 +1,1 @@
+## Fedora Xfce minimal setup

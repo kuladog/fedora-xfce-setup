@@ -1,7 +1,7 @@
-# ~/.inputrc
-# 
-# github.com/kuladog
 #
+# ~/.inputrc
+#
+
 
 $include /etc/inputrc
 

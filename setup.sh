@@ -23,7 +23,7 @@ source packages
 # set hostname if not already
 if [[ $HOSTNAME = fedora ]]; then
   echo -e "\nChoose system hostname:"
-  read "> " HOST
+  read HOST
   hostnamectl set-hostname "$HOST"
 fi
 
@@ -60,11 +60,21 @@ fi
 # configure local-sudo file
 echo -e "\nConfiguring local-sudo ..."
 
-sed -i "s|<user>|${USERNAME}|g" /etc/sudoers.d/local-sudo
+sed -i "s|<user>|${USER}|g" /etc/sudoers.d/local-sudo
 if [[ $? = 0 ]]; then
   echo "done"
 else
   echo "Could not set 'local-sudo'"
+fi
+
+
+# configure lxdm
+lxdmcheck=$(dnf list lxdm &> /dev/null)
+
+if [[ $lxdmcheck -eq 0 ]]; then
+  echo -e "\nConfiguring lxdm ..."
+  #mv /etc/systemd/system/default.target /etc/systemd/system/default.target.bak
+  sed -i "s|<user>|${USER}|g" /mnt/etc/lxdm/lxdm.conf
 fi
 
 
@@ -115,7 +125,7 @@ fi
 echo -e "\nCopying dotfiles to /home ..."
 
 if [[ -d dotfiles ]]; then
-  cp -ri dotfiles/. /home/"${USERNAME}"
+  cp -ri dotfiles/. /home/"${USER}"
 else
   echo -e "\nDirectory 'dotfiles' not found."
 fi
@@ -124,7 +134,7 @@ fi
 # firefox preferences
 echo -e "\nConfiguring Firefox browser ..."
 
-profile="/home/"${USERNAME}"/.mozilla/firefox/*default-release/"
+profile="/home/"${USER}"/.mozilla/firefox/*default-release/"
 if [[ -d $profile ]]; then
   cp dotfiles/.mozilla/user.js "$profile"
 fi
@@ -133,7 +143,7 @@ fi
 # configure vim plugins
 echo -e "\nConfiguring Vim editor ..."
 
-(cd /home/"${USERNAME}"/.vim/; tar -xzf plugins-bundle.tar.gz)
+(cd /home/"${USER}"/.vim/; tar -xzf plugins-bundle.tar.gz)
 vim +PluginInstall +qall
 if [[ $? -eq 0 ]]; then
   echo "done"
@@ -145,7 +155,7 @@ fi
 # load dconf settings
 echo -e "\nLoading Gnome settings ..."
 
-su - "$USERNAME" bash -c exit dconf load -f /org/ < dotfiles/.config/dconf/xfce-dconf
+su - "$USER" bash -c exit dconf load -f /org/ < dotfiles/.config/dconf/xfce-dconf
 if [[ $? -eq 0 ]]; then
   echo "done"
 else
@@ -156,8 +166,8 @@ fi
 # set owner and permissions
 echo -e "\nSetting /home permissions ..."
 
-chown -R "${USERNAME}":"${USERNAME}" /home/"${USERNAME}"
-chmod -R 750 /home/"${USERNAME}"
+chown -R "${USER}":"${USER}" /home/"${USER}"
+chmod -R 750 /home/"${USER}"
 
 
 #================================================
@@ -168,7 +178,7 @@ chmod -R 750 /home/"${USERNAME}"
 # automate security patches
 echo -e "\nEnable DNF security updates ..."
 
-dnfcheck=$(dnf list firejail &> /dev/null)
+dnfcheck=$(dnf list dnf-automatic &> /dev/null)
 if [[ $dnfcheck -eq 0 ]]; then
   systemctl enable --now dnf-automatic.timer
 else
@@ -184,7 +194,7 @@ if [[ $fjcheck -eq 0 ]]; then
   groupadd firejail
   chown root:firejail /usr/bin/firejail
   chmod 4750 /usr/bin/firejail
-  usermod -aG firejail "$USERNAME"
+  usermod -aG firejail "$USER"
   firecfg
 else
   echo "Firejail not installed"
@@ -196,9 +206,9 @@ echo -e "\nConfiguring NordVPN ..."
 
 nordcheck=$(dnf list nordvpn &> /dev/null)
 if [[ $nordcheck -eq 0 ]]; then
-  usermod -aG nordvpn "$USERNAME"
+  usermod -aG nordvpn "$USER"
   systemctl enable --now nordvpnd
-  su - "$USERNAME" bash -c exit
+  su - "$USER" bash -c exit
   nordvpn set technology nordlynx
   nordvpn set cybersec on
 else
