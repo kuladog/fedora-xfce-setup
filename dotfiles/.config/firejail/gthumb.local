@@ -1,0 +1,5 @@
+# ~/.config/firejail/gthumb.local
+#
+
+net none
+protocol unix

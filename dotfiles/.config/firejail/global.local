@@ -1,0 +1,7 @@
+# ~/.config/firejail/global.local
+#
+
+apparmor
+machine-id
+nonewprivs
+x11 xorg

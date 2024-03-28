@@ -1,0 +1,84 @@
+#! /usr/bin/env bash
+
+set -e
+
+
+# additional repos
+echo -e "\nEnabling repositories ...\n"
+dnf -y install \
+    fedora-workstation-repositories \
+    https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-"$(rpm -E %fedora)".noarch.rpm
+
+
+dnf -y update || true
+
+
+# install group packages
+echo -e "\nInstalling system packages...\n"
+dnf -y group install  \
+    base-x \
+    core \
+    standard \
+    'hardware support' \
+    virtualization
+
+
+# install xfce and lxdm
+echo -e "\nInstalling Xfce desktop...\n"
+dnf -y --setopt=install_weak_deps=False install \
+    catfish \
+    exo \
+    garcon \
+    libxfce4ui \
+    libxfce4util \
+    thunar \
+    thunar-volman \
+    tumbler \
+    xfce4-notifyd \
+    xfce4-panel \
+    xfce4-pulseaudio-plugin \
+    xfce4-power-manager \
+    xfce4-screenshooter \
+    xfce4-session \
+    xfce4-settings \
+    xfce4-terminal \
+    xfconf \
+    xfdesktop \
+    xfwm4 \
+    lxdm
+
+systemctl enable lxdm
+
+
+# install additional apps
+echo -e "\nInstalling additional applications ...\n"
+dnf -y --setopt=install_weak_deps=False install \
+    alsa-utils \
+    dconf \
+    dnf-automatic \
+    ffmpeg \
+    file-roller \
+    firefox \
+    firejail \
+    git \
+    greybird-dark-theme \
+    gvfs \
+    hexchat \
+    htop \
+    NetworkManager \
+    NetworkManager-wifi \
+    nm-connection-editor \
+    papirus-icon-theme \
+    shotwell \
+    transmission-gtk \
+    vlc \
+    xed \
+    xreader
+
+systemctl enable NetworkManager
+
+
+# install nordvpn
+echo -e "\nInstalling NordVPN ...\n"
+sh <(yes | curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh)
+
