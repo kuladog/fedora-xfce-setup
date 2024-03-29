@@ -36,16 +36,28 @@
           <property name="image-style" type="int" value="3"/>
           <property name="last-image" type="string" value="/etc/skel/.local/share/backgrounds/fedora-xfce4.jpg"/>
           <property name="rgba1" type="array">
-            <value type="double" value="0.368627"/>
-            <value type="double" value="0.360784"/>
-            <value type="double" value="0.392157"/>
-            <value type="double" value="1.000000"/>
+            <value type="double" value="0.36862699999999998"/>
+            <value type="double" value="0.36078399999999999"/>
+            <value type="double" value="0.39215699999999998"/>
+            <value type="double" value="1"/>
           </property>
         </property>
         <property name="workspace1" type="empty">
           <property name="color-style" type="int" value="0"/>
           <property name="image-style" type="int" value="3"/>
           <property name="last-image" type="string" value=""/>
+        </property>
+      </property>
+      <property name="monitoreDP-1" type="empty">
+        <property name="workspace0" type="empty">
+          <property name="color-style" type="int" value="0"/>
+          <property name="image-style" type="int" value="3"/>
+          <property name="last-image" type="string" value="/etc/skel/.local/share/backgrounds/fedora-xfce4.jpg"/>
+        </property>
+        <property name="workspace1" type="empty">
+          <property name="color-style" type="int" value="0"/>
+          <property name="image-style" type="int" value="3"/>
+          <property name="last-image" type="string" value="/etc/skel/.local/share/backgrounds/fedora-xfce4.jpg"/>
         </property>
       </property>
     </property>
