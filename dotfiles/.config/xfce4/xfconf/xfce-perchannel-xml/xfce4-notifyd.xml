@@ -13,8 +13,8 @@
   <property name="notify-location" type="uint" value="2"/>
   <property name="log-level" type="uint" value="0"/>
   <property name="log-level-apps" type="uint" value="0"/>
-  <property name="expire-timeout" type="int" value="3"/>
-  <property name="initial-opacity" type="double" value="0.84999999999999998"/>
+  <property name="expire-timeout" type="int" value="2"/>
+  <property name="initial-opacity" type="double" value="0.8"/>
   <property name="theme" type="string" value="Default"/>
   <property name="log-max-size-enabled" type="bool" value="true"/>
 </channel>
