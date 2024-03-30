@@ -46,9 +46,6 @@ dnf -y --setopt=install_weak_deps=False install \
     xfwm4 \
     lxdm
 
-systemctl enable lxdm
-systemctl set-default graphical.target
-
 
 # Install additional packages
 echo -e "\nInstalling additional applications ...\n"
