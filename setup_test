@@ -1,0 +1,334 @@
+#! /usr/bin/env bash -e
+
+
+# Check for root access
+if [[ $EUID -ne 0 ]]; then
+  echo -e "Please run setup as 'root'\n"
+  exit 1
+fi
+
+
+# Set current user name
+set_username=$(logname)
+
+
+#================================================
+#    INSTALL APPLICATIONS
+#================================================
+
+
+# Install apps from packages file
+if [[ -f packages_test ]]; then
+#  set -- "$set_username"
+  source "$(dirname "$0")"/packages_test
+fi
+
+
+#================================================
+#    SYSTEM CONFIGURATION
+#================================================
+
+
+# Set hostname if not already
+if [[ $HOSTNAME = fedora ]]; then
+  read -rp "Enter system hostname: " new_hostname
+
+  if hostnamectl set-hostname "$new_hostname" --pretty; then
+    echo -e "\nHostname set to $new_hostname"
+  else
+    echo -e "\nError: Failed to set hostname"
+    exit 1
+  fi
+fi
+
+
+# Copy config files to /etc
+echo -e "\nCopying config files ...\n"
+
+if [[ -d configs ]]; then
+  cp -r configs/. /etc || echo "Failed to copy files."
+else
+  echo -e "\nDirectory 'configs' not found."
+fi
+
+
+# Update grub configuration
+if [[ -d /sys/firmware/efi ]]; then
+  grub_file="/boot/efi/EFI/fedora/grub.cfg"
+else
+  grub_file="/boot/grub2/grub.cfg"
+fi
+
+if ! grub2-mkconfig -o "$grub_file"; then
+  echo -e "Error: Failed to update grub config"
+  exit 1
+fi
+
+
+# Configure /etc/hosts file
+echo -e "\nConfiguring /etc/hosts ...\n"
+
+echo -e "127.0.0.1\tlocalhost $new_hostname" > /etc/hosts
+if [[ $? -eq 0 ]]; then
+  echo "done"
+else
+  echo "Could not set 'hosts' file"
+fi
+
+
+# Configure display manager
+echo -e "\nConfiguring lxdm ..."
+
+if ! command -v "lxdm" &>/dev/null; then
+  echo "Error: 'nordvpn' package is not installed"
+  return 1
+fi
+
+systemctl enable lxdm
+systemctl set-default graphical.target
+
+sed -i "s|<user>|${set_username}|g" /etc/lxdm/lxdm.conf
+if [[ $? = -eq ]]; then
+  echo "done"
+else
+  echo "Could not set 'lxdm' for user."
+fi
+
+
+# Configure local-sudo file
+echo -e "\nConfiguring local-sudo ...\n"
+
+sed -i "s|<user>|${set_username}|g" /etc/sudoers.d/local-sudo
+if [[ $? = -eq ]]; then
+  echo "done"
+else
+  echo "Could not set 'local-sudo'"
+fi
+
+
+# Configure sysctl parameters
+function sysctl_conf {
+    echo -e "\nSetting kernel parameters ...\n"
+
+    kernel_params="/etc/sysctl.d/99-sysctl.conf"
+
+    if [[ -e $kernel_params ]]; then
+        sysctl -p "$kernel_params"
+    else
+        echo "Error: File '99-sysctl.conf' not found."
+    fi
+}
+
+sysctl_conf
+
+
+# Harden the filesystem table
+function fstab_config {
+    echo -e "\nConfiguring /etc/fstab ...\n"
+
+    # Modify /etc/fstab using sed
+    if [[ -f /etc/fstab ]]; then
+        sed -i.bak \
+        -e '/boot/ s=defaults=noatime=' \
+        -e '/\/[[:space:]]/ s=defaults=noatime=' \
+        -e '/home/ s=defaults=noatime,nodev,nosuid=' \
+        -e '/var/ s=defaults=noatime,nodev,nosuid=' \
+        -e 's/\S\+/0/5' \
+        -e 's/\S\+/0/6' \
+        /etc/fstab || echo "Error: Cannot read 'fstab' file."
+    else
+        echo "Error: '/etc/fstab' file not found."
+        return
+    fi
+
+    # Append additional mount entries to /etc/fstab
+    {
+        echo "/tmp  /var/tmp  none  nodev,nosuid,noexec,bind  0 0"
+        echo "tmpfs /tmp    tmpfs nodev,nosuid,noexec 0 0"
+        echo "tmpfs /dev/shm  tmpfs nodev,nosuid,noexec 0 0"
+        echo "proc  /proc   proc  nodev,nosuid,noexec     0 0"
+    } >> /etc/fstab || echo "Error: Cannot read 'fstab' file."
+
+    # Check if the configuration was successful
+    if systemctl daemon-reload; then
+        echo "done"
+    else
+        echo "Error: Problem setting 'fstab'"
+    fi
+}
+
+fstab_config
+
+
+#================================================
+#    SET-UP USER FILES
+#================================================
+
+
+# copy dotfiles to /home/*
+echo -e "\nCopying dotfiles to /home ...\n"
+
+if [[ -d dotfiles ]]; then
+  cp -r dotfiles/. /home/"${set_username}" || echo "Failed to copy files."
+else
+  echo -e "\nDirectory 'dotfiles' not found."
+fi
+
+
+# load dconf settings
+echo -e "\nLoading gsettings ...\n"
+
+su - "$set_username" -c "dconf load / < dotfiles/.config/dconf/dconf-settings.ini"
+
+if [[ $? -eq 0 ]]; then
+  echo "done"
+else
+  echo "Could not load dconf settings."
+fi
+
+
+# set owner and permissions
+echo -e "\nSetting /home permissions ...\n"
+
+chown -R "${set_username}":"${set_username}" /home/"${set_username}"
+chmod -R 750 /home/"${set_username}"
+
+
+#================================================
+#    SYSTEM SECURITY
+#================================================
+
+
+function dnf_security {
+    echo -e "\nEnabling DNF security updates...\n"
+
+    # Check if dnf-automatic package is installed
+    if ! command -v "dnf-automatic" &>/dev/null; then
+        echo "Error: 'dnf-automatic' package is not installed"
+        return 1
+    fi
+
+    # Enable and start the dnf-automatic.timer service
+    if systemctl enable --now dnf-automatic.timer &>/dev/null; then
+        echo "DNF security updates enabled successfully"
+    else
+        echo "Error: Failed to enable DNF security updates"
+        return 1
+    fi
+}
+
+
+function nordvpn_config {
+    echo -e "\nConfiguring NordVPN ...\n"
+
+    # Check if NordVPN package is installed
+    if ! command -v "nordvpn" &>/dev/null; then
+        echo "Error: 'nordvpn' package is not installed"
+        return 1
+    fi    
+
+    # Add user to nordvpn group
+    usermod -aG nordvpn "$set_username"
+    
+    # Enable and start nordvpnd service
+    systemctl enable --now nordvpnd
+
+    # Switch to user shell to execute commands as the user
+    su - "$set_username" bash -c "
+        nordvpn set technology nordlynx
+        nordvpn set cybersec on
+    "
+}
+
+
+function firejail_config {
+    echo -e "\nConfiguring firejail ...\n"
+
+    # Check if firejail package is installed
+    if ! command -v "firejail" &>/dev/null; then
+        echo "Error: 'firejail' package is not installed"
+        return 1
+    fi
+
+    # Create firejail group if it doesn't exist
+    if ! getent group firejail &>/dev/null; then
+        groupadd firejail
+    fi
+
+    # Set permissions for firejail executable
+    chown root:firejail /usr/bin/firejail
+    chmod 4750 /usr/bin/firejail
+
+    # Add user to firejail group
+    usermod -aG firejail "$set_username"
+    echo -e "User '$set_username' added to 'firejail' group\n"
+
+    # Load firejail profiles
+    firecfg
+}
+
+
+function firewalld_config {
+    echo -e "\nConfiguring Firewalld ...\n"
+
+    # Set default zone to "drop"
+    firewall-cmd --set-default-zone=drop
+
+    # Add rule to block ICMP block inversion
+    firewall-cmd --permanent --add-icmp-block-inversion
+
+    # Reload firewall configuration
+    firewall-cmd --reload
+
+    # List all firewall settings
+    echo
+    firewall-cmd --list-all
+}
+
+
+function selinux_config {
+    echo -e "\nConfirm SELinux is 'Enforcing' ...\n"
+
+    # Check SELinux status
+    selinux_check=$(getenforce)
+    sestatus
+
+    if [[ $selinux_check != "Enforcing" ]]; then
+        echo -e "\nConfiguring SELinux ...\n"
+        
+        # Update SELinux configuration
+        echo -e "SELINUX=enforcing\nSELINUXTYPE=targeted" > /etc/selinux/config
+        echo "done"
+    else
+        echo "SELinux OK!"
+    fi
+}
+
+
+# Call security functions
+dnf_security
+nordvpn_config
+firejail_config
+firewalld_config
+selinux_config
+
+
+#================================================
+#    SETUP COMPLETE
+#================================================
+
+
+clear
+
+
+# Install confirmation prompt
+echo -e "\nSetup complete! Any key to reboot..\n"
+read -n 1 -rs
+
+
+# Clean up installation files
+inst_dir=$(dirname "$(pwd)")
+rm -rf -- "$inst_dir"/{main.zip,fedora-xfce-setup}
+
+
+reboot

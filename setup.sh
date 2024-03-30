@@ -5,7 +5,7 @@ set -e
 
 # check for root access
 if [[ $(id -u) != 0 ]]; then
-    echo "Please run setup as 'root\n'"
+    echo -e "Please run setup as 'root\n'"
     exit 1
 fi
 
