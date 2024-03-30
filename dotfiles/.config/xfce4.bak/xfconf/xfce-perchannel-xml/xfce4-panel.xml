@@ -16,8 +16,7 @@
         <value type="int" value="3"/>
         <value type="int" value="8"/>
         <value type="int" value="5"/>
-        <value type="int" value="9"/>
-        <value type="int" value="4"/>
+        <value type="int" value="1"/>
         <value type="int" value="2"/>
         <value type="int" value="7"/>
         <value type="int" value="6"/>
@@ -30,10 +29,8 @@
     <property name="plugin-11" type="string" value="separator">
       <property name="style" type="uint" value="0"/>
     </property>
-    <property name="plugin-13" type="string" value="launcher">
-      <property name="items" type="array">
-        <value type="string" value="16333948133.desktop"/>
-      </property>
+    <property name="plugin-13" type="empty">
+      <property name="expand" type="bool" value="true"/>
     </property>
     <property name="plugin-12" type="empty">
       <property name="timezone" type="string" value="Canada/Pacific"/>
@@ -44,7 +41,7 @@
     </property>
     <property name="plugin-3" type="string" value="applicationsmenu">
       <property name="button-title" type="string" value=" Zuma"/>
-      <property name="button-icon" type="string" value="fedora-logo-icon"/>
+      <property name="button-icon" type="string" value="distributor-logo-fedora"/>
     </property>
     <property name="plugin-5" type="string" value="separator">
       <property name="expand" type="bool" value="true"/>
@@ -57,23 +54,19 @@
       <property name="timezone" type="string" value="America/Vancouver"/>
       <property name="digital-layout" type="uint" value="3"/>
       <property name="digital-time-font" type="string" value="Sans 11"/>
-      <property name="digital-time-format" type="string" value="%R"/>
     </property>
     <property name="plugin-8" type="string" value="tasklist">
       <property name="sort-order" type="uint" value="3"/>
       <property name="window-scrolling" type="bool" value="false"/>
       <property name="grouping" type="bool" value="true"/>
     </property>
+    <property name="plugin-1" type="string" value="launcher">
+      <property name="items" type="array">
+        <value type="string" value="17099757452.desktop"/>
+      </property>
+    </property>
     <property name="plugin-2" type="string" value="separator">
       <property name="style" type="uint" value="0"/>
-    </property>
-    <property name="plugin-4" type="string" value="pulseaudio">
-      <property name="enable-keyboard-shortcuts" type="bool" value="true"/>
-    </property>
-    <property name="plugin-9" type="string" value="launcher">
-      <property name="items" type="array">
-        <value type="string" value="17117643051.desktop"/>
-      </property>
     </property>
   </property>
 </channel>
