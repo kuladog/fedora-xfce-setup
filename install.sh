@@ -265,7 +265,7 @@ dconf_config() {
     fi
 }
 
-dconf_config
+#dconf_config
 
 
 # set owner and permissions
