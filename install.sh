@@ -26,9 +26,10 @@ exec 2> "$install_dir/Fedora-Setup-Errors-$timestamp.log"
 # Prompt to select username, and check if valid
 check_user() {
     echo -e "Setup will configure system for user '$(logname)'"
-    read -rp "Press 'y' to continue, or 'n' to set a new user: "
+    echo -n "Press 'y' to continue, or 'n' to set a new user: "
+    read -r choice
 
-    case "${REPLY,,}" in
+    case "${choice,,}" in
         y)
             set_username="$(logname)"
             ;;
@@ -250,23 +251,6 @@ copy_home() {
     fi
 }
 
-copy_home
-
-
-# load dconf settings
-dconf_config() {
-    echo -e "\nLoading gsettings ...\n"
-
-    if sudo -u "$set_username" dconf load / < dotfiles/.config/dconf/dconf-settings.ini; then
-        echo "done"
-    else
-        echo "Could not load dconf settings."
-        return 1
-    fi
-}
-
-#dconf_config
-
 
 # set owner and permissions
 home_config() {
@@ -276,7 +260,24 @@ home_config() {
     chmod -R 750 /home/"${set_username}"
 }
 
+
+# load dconf settings
+dconf_config() {
+    echo -e "\nLoading dconf settings ...\n"
+
+    if sudo -u "$set_username" dconf load / < dotfiles/.config/dconf/dconf-settings.ini; then
+        echo "done"
+    else
+        echo "Could not load dconf settings."
+        return 1
+    fi
+}
+
+
+# Call user settings
+copy_home
 home_config
+dconf_config
 
 
 #================================================
@@ -390,7 +391,7 @@ selinux_config() {
 }
 
 
-# Call security functions
+# Call security configs
 dnf_security
 nordvpn_config
 firejail_config
