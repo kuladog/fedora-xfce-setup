@@ -3,30 +3,31 @@
 set -e
 
 
-# additional repos
+# Add additional Fedora repos
 echo -e "\nEnabling repositories ...\n"
 dnf -y install \
     fedora-workstation-repositories \
-    https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-"$(rpm -E %fedora)".noarch.rpm
+    https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-"$(rpm -E %fedora)".noarch.rpm \
+    https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-"$(rpm -E %fedora)".noarch.rpm
 
 
+# DNF update with new repos
 dnf -y update || true
 
 
-# install group packages
-echo -e "\nInstalling system packages...\n"
+# Install package groups
+echo -e "\nInstalling package groups...\n"
 dnf -y group install  \
     base-x \
     core \
     standard \
-    'hardware support' \
-    virtualization
+    virtualization \
+    'hardware support'
 
 
-# install xfce and lxdm
+# Install xfce minimal desktop
 echo -e "\nInstalling Xfce desktop...\n"
 dnf -y --setopt=install_weak_deps=False install \
-    catfish \
     exo \
     garcon \
     libxfce4ui \
@@ -47,10 +48,10 @@ dnf -y --setopt=install_weak_deps=False install \
     xfwm4 \
     lxdm
 
-systemctl enable lxdm
+systemctl enable lxdm # configured in parent script
 
 
-# install additional apps
+# Install additional packages
 echo -e "\nInstalling additional applications ...\n"
 dnf -y --setopt=install_weak_deps=False install \
     alsa-utils \
@@ -63,7 +64,6 @@ dnf -y --setopt=install_weak_deps=False install \
     git \
     greybird-dark-theme \
     gvfs \
-    hexchat \
     htop \
     NetworkManager \
     NetworkManager-wifi \
@@ -75,10 +75,9 @@ dnf -y --setopt=install_weak_deps=False install \
     xed \
     xreader
 
-systemctl enable NetworkManager
+systemctl enable NetworkManager # configured in parent script
 
 
-# install nordvpn
+# Install nordvpn
 echo -e "\nInstalling NordVPN ...\n"
-sh <(yes | curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh)
-
+yes | sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh)

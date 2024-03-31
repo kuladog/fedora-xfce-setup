@@ -1,4 +1,4 @@
-#! /usr/bin/env bash -e
+#!/usr/bin/env bash
 
 
 # Check for root access
@@ -8,8 +8,67 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 
-# Set current user name
-set_username=$(logname)
+declare new_hostname
+declare set_username
+install_dir="$(dirname "$(pwd)")"
+timestamp=$(date +"%Y%m%d%H%M%S")
+
+
+# Log standard errors to file  
+exec 2> "$install_dir/Fedora-Setup-Errors-$timestamp.log"
+
+
+#================================================
+#    SET USER AND HOSTNAME
+#================================================
+
+
+# Prompt to select username, and check if valid
+check_user() {
+    echo -e "Setup will configure system for user '$(logname)'"
+    read -rp "Press 'y' to continue, or 'n' to set a new user: "
+
+    case "${REPLY,,}" in
+        y)
+            set_username="$(logname)"
+            ;;
+        n)
+            read -rp "Please enter new username: " set_username
+            if ! id "$set_username" &>/dev/null; then
+                if useradd -mG wheel -s /bin/bash "$set_username" 2>/dev/null; then
+                    echo -e "New user '$set_username' successfully added."
+                else
+                    echo -e "Error: Failed to add new user '$set_username'."
+                    exit 1
+                fi
+            fi
+            ;;
+        *)
+            echo "Invalid choice. Please try again."
+            check_user
+            ;;
+    esac
+
+    echo -e "Continuing setup for '$set_username'.."
+}
+
+
+# Set hostname if not done already
+check_host() {
+    if [[ $(hostname -s) = "fedora" ]]; then
+      read -rp "Enter system hostname: " new_hostname
+
+      if hostnamectl set-hostname "$new_hostname" --pretty; then
+        echo -e "\nHostname set to $new_hostname"
+      else
+        echo -e "\nError: Failed to set hostname"
+        exit 1
+      fi
+    fi
+}
+
+check_user
+check_host
 
 
 #================================================
@@ -17,11 +76,17 @@ set_username=$(logname)
 #================================================
 
 
-# Install apps from packages file
-if [[ -f packages_test ]]; then
-#  set -- "$set_username"
-  source "$(dirname "$0")"/packages_test
+# Install apps from packages script file
+install_apps() {
+if [[ -f packages ]]; then
+      source "$(dirname "$0")"/packages
+else
+    echo -e "Error: Could not find 'packages' script"
+    exit 1
 fi
+}
+
+install_apps
 
 
 #================================================
@@ -29,85 +94,92 @@ fi
 #================================================
 
 
-# Set hostname if not already
-if [[ $HOSTNAME = fedora ]]; then
-  read -rp "Enter system hostname: " new_hostname
-
-  if hostnamectl set-hostname "$new_hostname" --pretty; then
-    echo -e "\nHostname set to $new_hostname"
-  else
-    echo -e "\nError: Failed to set hostname"
-    exit 1
-  fi
-fi
-
-
 # Copy config files to /etc
-echo -e "\nCopying config files ...\n"
+copy_etc() {
+    echo -e "\nCopying config files ...\n"
 
-if [[ -d configs ]]; then
-  cp -r configs/. /etc || echo "Failed to copy files."
-else
-  echo -e "\nDirectory 'configs' not found."
-fi
+    if [[ -d configs ]]; then
+      cp -r configs/. /etc || echo "Failed to copy files."
+    else
+      echo -e "\nDirectory 'configs' not found."
+    fi
+}
+
+copy_etc
 
 
 # Update grub configuration
-if [[ -d /sys/firmware/efi ]]; then
-  grub_file="/boot/efi/EFI/fedora/grub.cfg"
-else
-  grub_file="/boot/grub2/grub.cfg"
-fi
+grub_config() {
+    if [[ -d /sys/firmware/efi ]]; then
+      grub_file="/boot/efi/EFI/fedora/grub.cfg"
+    else
+      grub_file="/boot/grub2/grub.cfg"
+    fi
 
-if ! grub2-mkconfig -o "$grub_file"; then
-  echo -e "Error: Failed to update grub config"
-  exit 1
-fi
+    if ! grub2-mkconfig -o "$grub_file"; then
+      echo -e "Error: Failed to update grub config"
+      exit 1
+    fi
+}
+
+grub_config
 
 
 # Configure /etc/hosts file
-echo -e "\nConfiguring /etc/hosts ...\n"
+hosts_config() {
+    echo -e "\nConfiguring /etc/hosts ...\n"
 
-echo -e "127.0.0.1\tlocalhost $new_hostname" > /etc/hosts
-if [[ $? -eq 0 ]]; then
-  echo "done"
-else
-  echo "Could not set 'hosts' file"
-fi
+    echo -e "127.0.0.1\tlocalhost $new_hostname" > /etc/hosts
+    if [[ $? -eq 0 ]]; then
+      echo "done"
+    else
+      echo "Could not set 'hosts' file"
+    fi
+}
+
+hosts_config
 
 
 # Configure display manager
-echo -e "\nConfiguring lxdm ..."
+dm_config() {
+    echo -e "\nConfiguring lxdm ..."
 
-if ! command -v "lxdm" &>/dev/null; then
-  echo "Error: 'nordvpn' package is not installed"
-  return 1
-fi
+    if ! command -v "lxdm" &>/dev/null; then
+      echo "Error: 'nordvpn' package is not installed"
+      return 1
+    fi
 
-systemctl enable lxdm
-systemctl set-default graphical.target
+    systemctl enable lxdm
+    systemctl set-default graphical.target
 
-sed -i "s|<user>|${set_username}|g" /etc/lxdm/lxdm.conf
-if [[ $? = -eq ]]; then
-  echo "done"
-else
-  echo "Could not set 'lxdm' for user."
-fi
+    if sed -i "s|<user>|${set_username}|g" /etc/lxdm/lxdm.conf 2>/dev/null; then
+      echo "done"
+    else
+      echo "Could not set 'lxdm' for user."
+      return 1
+    fi
+}
+
+dm_config
 
 
 # Configure local-sudo file
-echo -e "\nConfiguring local-sudo ...\n"
+sudo_config() {
+    echo -e "\nConfiguring local-sudo ...\n"
 
-sed -i "s|<user>|${set_username}|g" /etc/sudoers.d/local-sudo
-if [[ $? = -eq ]]; then
-  echo "done"
-else
-  echo "Could not set 'local-sudo'"
-fi
+    if sed -i "s|<user>|${set_username}|g" /etc/sudoers.d/local-sudo 2>/dev/null; then
+      echo "done"
+    else
+      echo "Could not set 'local-sudo'"
+      return 1
+    fi
+}
+
+sudo_config
 
 
 # Configure sysctl parameters
-function sysctl_conf {
+sysctl_config() {
     echo -e "\nSetting kernel parameters ...\n"
 
     kernel_params="/etc/sysctl.d/99-sysctl.conf"
@@ -116,14 +188,15 @@ function sysctl_conf {
         sysctl -p "$kernel_params"
     else
         echo "Error: File '99-sysctl.conf' not found."
+        return 1
     fi
 }
 
-sysctl_conf
+sysctl_config
 
 
 # Harden the filesystem table
-function fstab_config {
+fstab_config() {
     echo -e "\nConfiguring /etc/fstab ...\n"
 
     # Modify /etc/fstab using sed
@@ -138,7 +211,7 @@ function fstab_config {
         /etc/fstab || echo "Error: Cannot read 'fstab' file."
     else
         echo "Error: '/etc/fstab' file not found."
-        return
+        return 1
     fi
 
     # Append additional mount entries to /etc/fstab
@@ -154,6 +227,7 @@ function fstab_config {
         echo "done"
     else
         echo "Error: Problem setting 'fstab'"
+        return 1
     fi
 }
 
@@ -166,32 +240,43 @@ fstab_config
 
 
 # copy dotfiles to /home/*
-echo -e "\nCopying dotfiles to /home ...\n"
+copy_home() {
+    echo -e "\nCopying dotfiles to /home ...\n"
 
-if [[ -d dotfiles ]]; then
-  cp -r dotfiles/. /home/"${set_username}" || echo "Failed to copy files."
-else
-  echo -e "\nDirectory 'dotfiles' not found."
-fi
+    if [[ -d dotfiles ]]; then
+      cp -r dotfiles/. /home/"${set_username}" || echo "Failed to copy files."
+    else
+      echo -e "\nDirectory 'dotfiles' not found."
+    fi
+}
+
+copy_home
 
 
 # load dconf settings
-echo -e "\nLoading gsettings ...\n"
+dconf_config() {
+    echo -e "\nLoading gsettings ...\n"
 
-su - "$set_username" -c "dconf load / < dotfiles/.config/dconf/dconf-settings.ini"
+    if sudo -u "$set_username" dconf load / < dotfiles/.config/dconf/dconf-settings.ini; then
+        echo "done"
+    else
+        echo "Could not load dconf settings."
+        return 1
+    fi
+}
 
-if [[ $? -eq 0 ]]; then
-  echo "done"
-else
-  echo "Could not load dconf settings."
-fi
+dconf_config
 
 
 # set owner and permissions
-echo -e "\nSetting /home permissions ...\n"
+home_config() {
+    echo -e "\nSetting /home permissions ...\n"
 
-chown -R "${set_username}":"${set_username}" /home/"${set_username}"
-chmod -R 750 /home/"${set_username}"
+    chown -R "${set_username}":"${set_username}" /home/"${set_username}"
+    chmod -R 750 /home/"${set_username}"
+}
+
+home_config
 
 
 #================================================
@@ -199,7 +284,7 @@ chmod -R 750 /home/"${set_username}"
 #================================================
 
 
-function dnf_security {
+dnf_security() {
     echo -e "\nEnabling DNF security updates...\n"
 
     # Check if dnf-automatic package is installed
@@ -218,7 +303,7 @@ function dnf_security {
 }
 
 
-function nordvpn_config {
+nordvpn_config() {
     echo -e "\nConfiguring NordVPN ...\n"
 
     # Check if NordVPN package is installed
@@ -241,7 +326,7 @@ function nordvpn_config {
 }
 
 
-function firejail_config {
+firejail_config() {
     echo -e "\nConfiguring firejail ...\n"
 
     # Check if firejail package is installed
@@ -268,7 +353,7 @@ function firejail_config {
 }
 
 
-function firewalld_config {
+firewalld_config() {
     echo -e "\nConfiguring Firewalld ...\n"
 
     # Set default zone to "drop"
@@ -286,7 +371,7 @@ function firewalld_config {
 }
 
 
-function selinux_config {
+selinux_config() {
     echo -e "\nConfirm SELinux is 'Enforcing' ...\n"
 
     # Check SELinux status
@@ -327,8 +412,7 @@ read -n 1 -rs
 
 
 # Clean up installation files
-inst_dir=$(dirname "$(pwd)")
-rm -rf -- "$inst_dir"/{main.zip,fedora-xfce-setup}
+rm -rf -- "$install_dir"/{main.zip,fedora-xfce-setup}
 
 
 reboot
