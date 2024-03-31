@@ -16,8 +16,8 @@
         <value type="int" value="3"/>
         <value type="int" value="8"/>
         <value type="int" value="5"/>
-        <value type="int" value="9"/>
         <value type="int" value="4"/>
+        <value type="int" value="9"/>
         <value type="int" value="2"/>
         <value type="int" value="7"/>
         <value type="int" value="6"/>
@@ -44,7 +44,7 @@
     <property name="plugin-7" type="string" value="clock">
       <property name="timezone" type="string" value="America/Vancouver"/>
       <property name="digital-layout" type="uint" value="3"/>
-      <property name="digital-time-font" type="string" value="Sans 11"/>
+      <property name="digital-time-font" type="string" value="Sans 10"/>
       <property name="digital-time-format" type="string" value="%R"/>
     </property>
     <property name="plugin-8" type="string" value="tasklist">
