@@ -145,7 +145,7 @@ dm_config() {
     echo -e "\nConfiguring lxdm ..."
 
     if ! command -v "lxdm" &>/dev/null; then
-      echo "Error: 'nordvpn' package is not installed"
+      echo "Error: 'lxdm' package is not installed"
       return 1
     fi
 
