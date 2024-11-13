@@ -1,7 +1,5 @@
-#
 # ~/.inputrc
 #
-
 
 $include /etc/inputrc
 

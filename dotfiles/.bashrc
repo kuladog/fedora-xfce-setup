@@ -1,7 +1,5 @@
-#
 # ~/.bashrc
 #
-
 
 # If not running interactively.. just don't.
 [[ $- != *i* ]] && return

@@ -1,10 +1,10 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
 
 set -e
 
 
 # Add additional Fedora repos
-echo -e "\nEnabling repositories ...\n"
+echo -e "\nEnabling additional repositories ...\n"
 dnf -y install \
     fedora-workstation-repositories \
     https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-"$(rpm -E %fedora)".noarch.rpm \
@@ -12,11 +12,11 @@ dnf -y install \
 
 
 # DNF update with new repos
-dnf -y update || true
+dnf -y update --refresh || true
 
 
 # Install package groups
-echo -e "\nInstalling package groups...\n"
+echo -e "\nInstalling Fedora package groups...\n"
 dnf -y group install  \
     base-x \
     core \
@@ -25,14 +25,16 @@ dnf -y group install  \
     'hardware support'
 
 
-# Install xfce minimal desktop
-echo -e "\nInstalling Xfce desktop...\n"
+# Install bare bones xfce
+echo -e "\nInstalling Xfce desktop ...\n"
 dnf -y --setopt=install_weak_deps=False install \
     exo \
     garcon \
     libxfce4ui \
     libxfce4util \
+    lxdm \
     thunar \
+    thunar-archive-plugin \
     thunar-volman \
     tumbler \
     xfce4-notifyd \
@@ -45,10 +47,7 @@ dnf -y --setopt=install_weak_deps=False install \
     xfce4-terminal \
     xfconf \
     xfdesktop \
-    xfwm4 \
-    lxdm
-
-systemctl enable lxdm # configured in parent script
+    xfwm4
 
 
 # Install additional packages
@@ -57,25 +56,21 @@ dnf -y --setopt=install_weak_deps=False install \
     alsa-utils \
     dconf \
     dnf-automatic \
-    ffmpeg \
-    file-roller \
+    ffmpeg-free \
     firefox \
     firejail \
     git \
     greybird-dark-theme \
     gvfs \
     htop \
-    NetworkManager \
-    NetworkManager-wifi \
-    nm-connection-editor \
+    network-manager-applet \
     papirus-icon-theme \
-    shotwell \
+    ristretto \
     transmission-gtk \
     vlc \
+    xarchiver \
     xed \
     xreader
-
-systemctl enable NetworkManager # configured in parent script
 
 
 # Install nordvpn
