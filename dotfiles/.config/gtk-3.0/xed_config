@@ -1,6 +1,6 @@
 [Settings]
 gtk-theme-name=Greybird-dark
-gtk-icon-theme-name=Papirus-Dark
+gtk-icon-theme-name=Papirus
 gtk-application-prefer-dark-theme=1
 gtk-button-images=1
 gtk-cursor-theme-size=0
@@ -12,4 +12,3 @@ gtk-xft-dpi=96
 gtk-xft-hinting=1
 gtk-xft-hintstyle=hintslight
 gtk-xft-rgba=rgb
-

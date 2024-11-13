@@ -323,8 +323,18 @@ home_config() {
 dconf_config() {
     echo -e "\nLoading dconf settings ...\n"
 
-    if sudo -u "$set_username" dconf load / < dotfiles/.config/dconf/dconf-settings.ini; then
-        echo "done"
+    dconf_dir="$install_dir/dotfiles/.config/dconf/dconf-settings.ini"
+
+    # Replace <user> placeholder with username
+    if sed -i "s|<user>|${set_username}|g" "$dconf_dir"; then
+        echo "Replaced <user> with ${set_username} in dconf settings file."
+    else
+        log_error "Failed to replace <user> in dconf settings file."
+    fi
+
+    # Load the dconf settings as the target user
+    if sudo -u "$set_username" dconf load / < "$dconf_dir"; then
+        echo "dconf settings loaded successfully."
     else
         log_error "Could not load dconf settings."
     fi
