@@ -60,13 +60,13 @@ check_user() {
             fi
             echo "Please confirm new username: "; read username2
             
-	        if [[ $username1 = $username2 ]]; then
+            if [[ $username1 = $username2 ]]; then
                 set_username="$username1"
-		        new_user
-	        else
-		        echo -e "Usernames do not match, please try again.\n"
-		        check_user
-	        fi
+                new_user
+            else
+                echo -e "Usernames do not match, please try again.\n"
+                check_user
+            fi
             ;;
         *)
             echo -e "Invalid choice. Please try again.\n"
@@ -131,7 +131,6 @@ rm_bloatware() {
         dnf remove $(grep "^[^#]" bloatware) || log_error "Couldn't load 'bloatware' file."
     else
         log_error "'bloatware' file not found in $install_dir."
-        exit 1
     fi
 }
 
