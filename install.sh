@@ -37,7 +37,7 @@ new_user() {
     echo "Creating user '$set_username'..."
 
     if ! id "$set_username" &>/dev/null; then
-        useradd -mG wheel -s /bin/bash "$set_username" || { log_error "Failed to add new user."; exit 1 }
+        useradd -mG wheel -s /bin/bash "$set_username" || { log_error "Failed to add new user."; exit 1; }
     fi
 }
 
@@ -53,14 +53,14 @@ check_user() {
             set_username="$(logname)"
             ;;
         n)
-            echo "Please enter new username: "; read username1
+            echo "Please enter new username: "; read -r username1
             if [[ ! "$username1" =~ ^[a-zA-Z0-9_-]+$ ]]; then
                 log_error "Invalid username format.\n"
                 check_user
             fi
-            echo "Please confirm new username: "; read username2
+            echo "Please confirm new username: "; read -r username2
             
-            if [[ $username1 = $username2 ]]; then
+            if [[ $username1 = "$username2" ]]; then
                 set_username="$username1"
                 new_user
             else
@@ -86,12 +86,13 @@ check_host() {
             new_hostname="$(hostname -s)"
             ;;
         n)
-            echo "Please enter new hostname: "; read new_hostname
-            read -p "Set hostname to "$new_hostname"? [Y/n]: " confirm
+            echo "Please enter new hostname: "; read -r new_hostname
+            read -rp "Set hostname to ""$new_hostname""? [Y/n]: " confirm
             if [[ $confirm =~ ^[Yy]$ ]]; then
                 hostnamectl set-hostname "$new_hostname" --pretty || log_error "Failed to set hostname."          
             else
                 check_host
+            fi
             ;;
         *)
             echo "Invalid choice. Please try again."
@@ -128,7 +129,7 @@ rm_bloatware() {
     echo -e "\nRemoving common bloatware ...\n"
 
     if [[ -f "$install_dir/bloatware" ]]; then
-        dnf remove $(grep "^[^#]" bloatware) || log_error "Couldn't load 'bloatware' file."
+        dnf remove "$(grep "^[^#]" bloatware)" || log_error "Couldn't load 'bloatware' file."
     else
         log_error "'bloatware' file not found in $install_dir."
     fi
@@ -179,8 +180,7 @@ grub_config() {
 hosts_config() {
     echo -e "\nConfiguring /etc/hosts ...\n"
 
-    echo -e "127.0.0.1\tlocalhost $new_hostname" > /etc/hosts
-    if [[ $? -eq 0 ]]; then
+    if echo -e "127.0.0.1\tlocalhost $new_hostname" > /etc/hosts; then
       echo "done"
     else
       log_error "Could not set 'hosts' file."
@@ -314,7 +314,7 @@ home_config() {
        chmod -R 750 /home/"${set_username}"; then
        echo "done"
     else
-       log_error"Could not set ${HOME} permissions."
+       log_error "Could not set ${HOME} permissions."
     fi
 }
 
@@ -409,7 +409,7 @@ firejail_config() {
 
     # Set permissions for firejail executable
     chown root:firejail /usr/bin/firejail && \
-    chmod 4750 /usr/bin/firejail || log_error "Could not set firejail permissions'"
+    chmod 4750 /usr/bin/firejail || log_error "Could not set firejail permissions"
 
     # Add user to firejail group
     if ! groups "$set_username" | grep -o firejail; then
