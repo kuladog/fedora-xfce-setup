@@ -20,7 +20,7 @@ exec 2> "$logfile"
 
 
 # Send error messages to log file
-log_error() {
+error() {
     local msg="$1"
     echo -e "\nError: $msg" | tee -a "$logfile"
     return 1
@@ -37,7 +37,7 @@ new_user() {
     echo "Creating user '$set_username'..."
 
     if ! id "$set_username" &>/dev/null; then
-        useradd -mG wheel -s /bin/bash "$set_username" || { log_error "Failed to add new user."; exit 1; }
+        useradd -mG wheel -s /bin/bash "$set_username" || { error "Failed to add new user."; exit 1; }
     fi
 }
 
@@ -55,11 +55,11 @@ check_user() {
         n)
             echo "Please enter new username: "; read -r username1
             if [[ ! "$username1" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-                log_error "Invalid username format.\n"
+                error "Invalid username format.\n"
                 check_user
             fi
             echo "Please confirm new username: "; read -r username2
-            
+
             if [[ $username1 = "$username2" ]]; then
                 set_username="$username1"
                 new_user
@@ -69,7 +69,7 @@ check_user() {
             fi
             ;;
         *)
-            echo -e "Invalid choice. Please try again.\n"
+            echo -e "Invalid choice, please try again.\n"
             check_user
             ;;
     esac
@@ -89,13 +89,13 @@ check_host() {
             echo "Please enter new hostname: "; read -r new_hostname
             read -rp "Set hostname to ""$new_hostname""? [Y/n]: " confirm
             if [[ $confirm =~ ^[Yy]$ ]]; then
-                hostnamectl set-hostname "$new_hostname" --pretty || log_error "Failed to set hostname."          
+                hostnamectl set-hostname "$new_hostname" --pretty || error "Failed to set hostname."          
             else
                 check_host
             fi
             ;;
         *)
-            echo "Invalid choice. Please try again."
+            echo -e "Invalid choice. Please try again.\n"
             check_host
             ;;
     esac
@@ -116,9 +116,9 @@ install_apps() {
     echo -e "\nInstalling applications ...\n"
 
     if [[ -f "$install_dir/packages" ]]; then
-        source "$install_dir/packages" || { log_error "'packages' script not found."; exit 1; }
+        source "$install_dir/packages" || { error "'packages' script not found."; exit 1; }
     else
-        log_error "'packages' file not found in $install_dir."
+        error "'packages' file not found in $install_dir."
         exit 1
     fi
 }
@@ -129,9 +129,9 @@ rm_bloatware() {
     echo -e "\nRemoving common bloatware ...\n"
 
     if [[ -f "$install_dir/bloatware" ]]; then
-        dnf remove "$(grep "^[^#]" bloatware)" || log_error "Couldn't load 'bloatware' file."
+        dnf remove "$(grep "^[^#]" bloatware)" || error "Couldn't load 'bloatware' file."
     else
-        log_error "'bloatware' file not found in $install_dir."
+        error "'bloatware' file not found in $install_dir."
     fi
 }
 
@@ -150,9 +150,9 @@ copy_etc() {
     echo -e "\nCopying config files ...\n"
 
     if [[ -d configs ]]; then
-      cp -r configs/. /etc || log_error "Failed to copy files."
+      cp -r configs/. /etc || error "Failed to copy files."
     else
-      log_error "Directory 'configs' not found."
+      error "Directory 'configs' not found."
     fi
 }
 
@@ -172,7 +172,7 @@ grub_config() {
     fi
 
     # Regenerate grub configuration
-    grub2-mkconfig -o "$grub_file" || { log_error "Failed to update grub config."; exit 1; }
+    grub2-mkconfig -o "$grub_file" || { error "Failed to update grub config."; exit 1; }
 }
 
 
@@ -183,7 +183,7 @@ hosts_config() {
     if echo -e "127.0.0.1\tlocalhost $new_hostname" > /etc/hosts; then
       echo "done"
     else
-      log_error "Could not set 'hosts' file."
+      error "Could not set 'hosts' file."
     fi
 }
 
@@ -196,7 +196,7 @@ dm_config() {
 
     # If 'lxdm' is not installed, do nothing
     if ! command -v lxdm &>/dev/null; then
-        log_error "'lxdm' package is not installed."
+        error "'lxdm' package is not installed."
     else
         # If current dm is not lxdm, stop and disable it
         if [[ -n $current_dm ]]; then
@@ -213,7 +213,7 @@ dm_config() {
     if sed -i "s|<user>|${set_username}|g" /etc/lxdm/lxdm.conf 2>/dev/null; then
       echo "done"
     else
-      log_error "Could not set user for lxdm."
+      error "Could not set user for lxdm."
     fi
 }
 
@@ -225,7 +225,7 @@ sudo_config() {
     if sed -i "s|<user>|${set_username}|g" /etc/sudoers.d/local-sudo 2>/dev/null; then
       echo "done"
     else
-      log_error "Could not set 'local-sudo'."
+      error "Could not set 'local-sudo'."
     fi
 }
 
@@ -239,7 +239,7 @@ sysctl_config() {
     if [[ -e $kernel_params ]]; then
         sysctl -p "$kernel_params"
     else
-        log_error "File '99-sysctl.conf' not found."
+        error "File '99-sysctl.conf' not found."
     fi
 }
 
@@ -260,7 +260,7 @@ fstab_config() {
         -e '/var/ s=defaults=noatime,nodev,nosuid=' \
         -e 's/\S\+/0/5' \
         -e 's/\S\+/0/6' \
-        /etc/fstab || log_error "Cannot find /etc/fstab."
+        /etc/fstab || error "Cannot find /etc/fstab."
     fi
 
     # Append additional mount entries to /etc/fstab
@@ -269,13 +269,13 @@ fstab_config() {
         echo "tmpfs /tmp    tmpfs nodev,nosuid,noexec 0 0"
         echo "tmpfs /dev/shm  tmpfs nodev,nosuid,noexec 0 0"
         echo "proc  /proc   proc  nodev,nosuid,noexec     0 0"
-    } >> /etc/fstab || log_error "Could not edit /etc/fstab."
+    } >> /etc/fstab || error "Could not edit /etc/fstab."
 
     # Check if the configuration was successful
     if systemctl daemon-reload; then
         echo "done"
     else
-        log_error "Problem loading /etc/fstab."
+        error "Problem loading /etc/fstab."
     fi
 }
 
@@ -299,9 +299,9 @@ copy_home() {
     echo -e "\nCopying dotfiles to /home ...\n"
 
     if [[ -d dotfiles ]]; then
-      cp -r dotfiles/. /home/"${set_username}" || log_error "Failed to copy files."
+      cp -r dotfiles/. /home/"${set_username}" || error "Failed to copy files."
     else
-      log_error "Directory 'dotfiles' not found."
+      error "Directory 'dotfiles' not found."
     fi
 }
 
@@ -314,7 +314,7 @@ home_config() {
        chmod -R 750 /home/"${set_username}"; then
        echo "done"
     else
-       log_error "Could not set ${HOME} permissions."
+       error "Could not set ${HOME} permissions."
     fi
 }
 
@@ -329,14 +329,14 @@ dconf_config() {
     if sed -i "s|<user>|${set_username}|g" "$dconf_dir"; then
         echo "Replaced <user> with ${set_username} in dconf settings file."
     else
-        log_error "Failed to replace <user> in dconf settings file."
+        error "Failed to replace <user> in dconf settings file."
     fi
 
     # Load the dconf settings as the target user
     if sudo -u "$set_username" dconf load / < "$dconf_dir"; then
         echo "dconf settings loaded successfully."
     else
-        log_error "Could not load dconf settings."
+        error "Could not load dconf settings."
     fi
 }
 
@@ -356,14 +356,14 @@ dnf_security() {
 
     # Check if dnf-automatic package is installed
     if ! command -v "dnf-automatic" &>/dev/null; then
-        log_error "'dnf-automatic' package is not installed."
+        error "'dnf-automatic' package is not installed."
     fi
 
     # Enable and start the dnf-automatic.timer service
     if systemctl enable --now dnf-automatic.timer &>/dev/null; then
         echo "DNF security updates enabled successfully"
     else
-        log_error "Failed to enable DNF security updates."
+        error "Failed to enable DNF security updates."
     fi
 }
 
@@ -373,16 +373,16 @@ nordvpn_config() {
 
     # Check if NordVPN package is installed
     if ! command -v nordvpn &>/dev/null; then
-        log_error "'nordvpn' package is not installed."
+        error "'nordvpn' package is not installed."
     fi    
 
     # Add user to nordvpn group
     if ! groups "$set_username" | grep -o nordvpn; then
-        usermod -aG nordvpn "$set_username" || log_error "Could not add user to 'nordvpn'"
+        usermod -aG nordvpn "$set_username" || error "Could not add user to 'nordvpn'"
     fi
 
     # Enable and start nordvpnd service
-    systemctl enable --now nordvpnd || log_error "NordVPN could not be enabled."
+    systemctl enable --now nordvpnd || error "NordVPN could not be enabled."
 
     # Switch to user shell to execute commands as the user
     su - "$set_username" bash -c "
@@ -399,7 +399,7 @@ firejail_config() {
 
     # Check if firejail package is installed
     if ! command -v "firejail" &>/dev/null; then
-        log_error "'firejail' package is not installed."
+        error "'firejail' package is not installed."
     fi
 
     # Create firejail group if it doesn't exist
@@ -409,11 +409,11 @@ firejail_config() {
 
     # Set permissions for firejail executable
     chown root:firejail /usr/bin/firejail && \
-    chmod 4750 /usr/bin/firejail || log_error "Could not set firejail permissions"
+    chmod 4750 /usr/bin/firejail || error "Could not set firejail permissions"
 
     # Add user to firejail group
     if ! groups "$set_username" | grep -o firejail; then
-        usermod -aG firejail "$set_username" || log_error "Could not add user to 'firejail'"
+        usermod -aG firejail "$set_username" || error "Could not add user to 'firejail'"
     fi
 
     # Load firejail profiles
@@ -449,7 +449,7 @@ selinux_config() {
     if [[ $selinux_check != "Enforcing" ]]; then
         echo -e "SELINUX=enforcing\nSELINUXTYPE=targeted" > /etc/selinux/config
     else
-        log_error "SELinux could not be configured."
+        error "SELinux could not be configured."
     fi
 
     echo "SELinux is set to 'Enforcing'."
