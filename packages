@@ -11,18 +11,19 @@ dnf -y install \
     https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-"$(rpm -E %fedora)".noarch.rpm
 
 
-# DNF update with new repos
+# Update dnf with new repos
 dnf -y update --refresh || true
 
 
-# Install package groups
+# Insure these groups are installed
 echo -e "\nInstalling Fedora package groups...\n"
 dnf -y group install  \
     base-x \
     core \
+    multimedia \
     standard \
     virtualization \
-    'hardware support'
+    'Common NetworkManager Submodules'
 
 
 # Install bare bones xfce
@@ -53,21 +54,21 @@ dnf -y --setopt=install_weak_deps=False install \
 # Install additional packages
 echo -e "\nInstalling additional applications ...\n"
 dnf -y --setopt=install_weak_deps=False install \
-    alsa-utils \
-    dconf \
     dnf-automatic \
     ffmpeg-free \
     firefox \
     firejail \
-    git \
+    gh \
     greybird-dark-theme \
-    gvfs \
     htop \
     network-manager-applet \
+    p7zip \
     papirus-icon-theme \
+    pavucontrol \
     ristretto \
     transmission-gtk \
     vlc \
+    vlc-plugins-freeworld \
     xarchiver \
     xed \
     xreader
@@ -75,4 +76,7 @@ dnf -y --setopt=install_weak_deps=False install \
 
 # Install nordvpn
 echo -e "\nInstalling NordVPN ...\n"
-yes | sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh)
+
+## dnf5 breaking repo dl from nordvpn !!
+
+#yes | sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh)
