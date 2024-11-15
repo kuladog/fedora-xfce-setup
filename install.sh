@@ -7,14 +7,17 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
+
 declare new_hostname
 declare set_username
 install_dir=$(cd "$(dirname "$0")" && pwd)
 timestamp=$(date +"%m%d%H%M%S")
 logfile="$install_dir/Fedora-Setup-Errors_$timestamp.log"
 
+
 exec 3>&2
 exec 2> "$logfile"
+
 
 # Error handling and send to logfile
 error() {
@@ -23,9 +26,11 @@ error() {
     return 1
 }
 
+
 #================================================
 #    SET USER AND HOSTNAME
 #================================================
+
 
 # Prompt and validate input for username or hostname
 name_check() {
@@ -33,7 +38,7 @@ name_check() {
     local current_value=""
     local new_value=""
     local confirm_value=""
-    
+
     if [[ "$config_type" == "username" ]]; then
         current_value="$(logname)"
     elif [[ "$config_type" == "hostname" ]]; then
@@ -43,7 +48,7 @@ name_check() {
     fi
 
     echo -e "\nCurrent $config_type is '$current_value'"
-    
+
     # Ask if user wants to change the value
     read -rp "Do you want to change it? [Y/n] " 2>&3
     case "${REPLY,,}" in
@@ -82,6 +87,7 @@ name_check() {
     fi
 }
 
+
 # Add new user if requested
 add_user() {
     echo "Creating new user '$set_username'..."
@@ -92,6 +98,7 @@ add_user() {
         error "User '$set_username' already exists."
     fi
 }
+
 
 # Change hostname if requested
 new_host() {
@@ -104,12 +111,15 @@ new_host() {
     fi
 }
 
+
 name_check "username"
 name_check "hostname"
+
 
 #================================================
 #    PACKAGE MANAGEMENT
 #================================================
+
 
 # Install apps from 'packages' file
 install_apps() {
@@ -122,6 +132,7 @@ install_apps() {
     fi
 }
 
+
 # Remove common Fedora bloatware
 rm_bloatware() {
     echo -e "\nRemoving common bloatware ...\n"
@@ -132,12 +143,15 @@ rm_bloatware() {
     fi
 }
 
+
 install_apps
 rm_bloatware
+
 
 #================================================
 #    SYSTEM CONFIGURATION
 #================================================
+
 
 # Copy config files to /etc
 copy_etc() {
@@ -148,6 +162,7 @@ copy_etc() {
       error "'configs' directory not found in $install_dir."
     fi
 }
+
 
 # Update grub configuration
 grub_config() {
@@ -166,6 +181,7 @@ grub_config() {
     grub2-mkconfig -o "$grub_file" || { error "Failed to update grub configuration."; exit 1; }
 }
 
+
 # Configure system hosts file
 hosts_config() {
     echo -e "\nConfiguring /etc/hosts ...\n"
@@ -175,6 +191,7 @@ hosts_config() {
       error "Could not set system 'hosts' file."
     fi
 }
+
 
 # Configure display manager
 dm_config() {
@@ -202,6 +219,7 @@ dm_config() {
     fi
 }
 
+
 # Configure local-sudo file
 sudo_config() {
     echo -e "\nConfiguring sudo for $set_username ...\n"
@@ -211,6 +229,7 @@ sudo_config() {
       error "Could not configure /etc/sudoers.d/local-sudo."
     fi
 }
+
 
 # Configure sysctl parameters
 sysctl_config() {
@@ -223,6 +242,7 @@ sysctl_config() {
         error "File '99-sysctl.conf' not found."
     fi
 }
+
 
 # Harden the filesystem table
 fstab_config() {
@@ -257,6 +277,7 @@ fstab_config() {
     fi
 }
 
+
 copy_etc
 grub_config
 hosts_config
@@ -265,9 +286,11 @@ sudo_config
 sysctl_config
 fstab_config
 
+
 #================================================
 #    SET-UP USER FILES
 #================================================
+
 
 # Copy dotfiles to /home/*
 copy_home() {
@@ -278,6 +301,7 @@ copy_home() {
       error "Directory 'dotfiles' not found in $install_dir."
     fi
 }
+
 
 # Set owner and permissions for /home/*
 home_config() {
@@ -295,6 +319,7 @@ home_config() {
         echo "Permissions successfully set for /home/${set_username}."
     fi
 }
+
 
 # Load dconf settings
 dconf_config() {
@@ -316,18 +341,20 @@ dconf_config() {
     fi
 }
 
+
 copy_home
 home_config
 dconf_config
+
 
 #================================================
 #    SYSTEM SECURITY
 #================================================
 
+
 dnf_security() {
     echo -e "\nEnabling DNF security updates ...\n"
 
-    # Check if package is installed
     if ! command -v "dnf-automatic" &>/dev/null; then
         error "'dnf-automatic' package is not installed."
     fi
@@ -340,10 +367,10 @@ dnf_security() {
     fi
 }
 
+
 nordvpn_config() {
     echo -e "\nConfiguring NordVPN ...\n"
 
-    # Check if NordVPN is installed
     if ! command -v nordvpn &>/dev/null; then
         error "'nordvpn' package is not installed."
     fi
@@ -364,9 +391,10 @@ nordvpn_config() {
     "
 }
 
+
 firejail_config() {
     echo -e "\nConfiguring firejail ...\n"
-    
+
     if ! command -v "firejail" &>/dev/null; then
         error "'firejail' package is not installed."
     fi
@@ -377,7 +405,6 @@ firejail_config() {
     else
         echo "Group 'firejail' created."
     fi
-
     # Add user to firejail group
     if ! groups "$set_username" | grep -o firejail; then
         usermod -aG firejail "$set_username" || error "Could not add user to 'firejail'"
@@ -402,6 +429,7 @@ firejail_config() {
     firecfg
 }
 
+
 # Set firewall defaults
 firewalld_config() {
     echo -e "\nConfiguring Firewalld ...\n"
@@ -414,6 +442,7 @@ firewalld_config() {
         firewall-cmd --reload
     fi
 }
+
 
 # Confirm seLinux is enforcing
 selinux_config() {
@@ -428,21 +457,26 @@ selinux_config() {
     echo "SELinux is set to 'Enforcing'."
 }
 
+
 dnf_security
 nordvpn_config
 firejail_config
 firewalld_config
 selinux_config
 
+
 #================================================
 #    SETUP COMPLETE
 #================================================
+
 
 # Install confirmation prompt
 echo -e "\nSetup complete! Press any key to reboot..\n"
 read -n 1 -rs
 
+
 # Clean up installation files
 rm -rf -- "$install_dir"/{main.zip,fedora-xfce-setup}
+
 
 reboot
